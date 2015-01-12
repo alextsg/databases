@@ -13,7 +13,8 @@ $(function() {
 
     init: function() {
       // Get username
-      app.username = window.location.search.substr(10);
+      //app.username = window.location.search.substr(10);
+      app.username = 'anonymous';
 
       // Cache jQuery selectors
       app.$main = $('#main');

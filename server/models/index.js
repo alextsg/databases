@@ -4,51 +4,58 @@ var db = require('../db').dbConnection;
 module.exports = {
   messages: {
     get: function (callback) {
-      db.query('SELECT message, username, createdAt, roomname FROM messages JOIN users ON messages.user_id=users.id JOIN rooms ON messages.room_id=rooms.id;', function(err, rows, fields) {
-      if (err) throw (err);
+      db.query('SELECT message, username, roomname FROM messages JOIN users ON messages.user_id=users.id;', function(err, rows, fields) {
+      if (err) throw 'messages.get';
       callback(rows);
       });
     }, // a function which produces all the messages
     post: function (message, callback) {
-      db.query('INSERT INTO messages (message, user_id, createdAt, room_id) values ("' + message.message + '", 21, STR_TO_DATE("1-01-2012", "%d-%m-%Y"), 1);',
-        function (err, results, fields) {
-        if (err) throw err;
-        else {
-          callback();
+      var user_id;
+      module.exports.users.get(message.username, function(rows){
+        if (rows.length) {
+          user_id = rows[0].id;
+          db.query("INSERT INTO messages (message, user_id, roomname) values ('" + message.text + "','" + user_id + "','" + message.roomname + "');", function(err){
+            if (err) throw "error on insert message";
+            else {
+              callback();
+            }
+        });
+        } else {
+          module.exports.users.post(message.username, function(id) {
+            user_id = id;
+            db.query("INSERT INTO messages (message, user_id, roomname) values ('" + message.text + "','" + user_id + "','" + message.roomname + "');", function(err){
+              if (err) throw "error on insert message";
+              else {
+                callback();
+          }
+        });
+          });
         }
       });
-      /*var user_id;
-      module.exports.users.get(message, function(rows){
-        if (rows.length){
-          user_id = rows[0];
-          console.log("user_id", user_id);
-        }
-      });
-*/
+      
+      
     } // a function which can be used to insert a message into the database
   },
 
   users: {
     // Ditto as above.
-    get: function (name, callback) {
-      db.query("SELECT id FROM users ON users.username='" + name.username + "';", function(err, rows, fields) {
-      if (err) throw (err);
-      callback(rows);
+    get: function (username, callback) {
+      db.query("SELECT users.id FROM users WHERE users.username='" + username + "';", function(err, rows, fields) {
+        if (err) throw "users.get";
+        else {
+          callback(rows);
+        }
       });
     },
-    post: function(user, callback) {
-      db.query("INSERT INTO users (username) values ('" + user.username + "');",
-        function (err, results, fields) {
-        if (err) throw err;
+    post: function(username, callback) {
+      db.query("INSERT INTO users (username) values ('" + username + "');", function(err, result) {
+        if (err) throw "users.post";
         else {
-          callback();
+          console.log('result', result);
+          console.log('resultid', result.insertId);
+          callback(result.insertId);
         }
       });
     }
   }
 };
-
-
-
-// console.log("username", rows[0].username);
-// console.log("message", rows[0].message);
